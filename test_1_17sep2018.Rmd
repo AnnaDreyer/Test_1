@@ -1,0 +1,19 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Installing packages
+```{r message=FALSE, warning=FALSE, include=FALSE}
+install.packages("needs")
+library(needs)
+needs(tidyverse, readxl, boot, magrittr, gmodels, vcd, 
+      psych, caret,tree, Metrics, randomForest, gbm, MASS, haven)
+```
+
+Reading data
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+cam_data <- read_sav("Cambridge_delinquency.sav")
+con_data <- read_sav("conviction_data.sav")
+```
+
