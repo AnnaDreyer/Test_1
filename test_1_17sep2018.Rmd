@@ -1,19 +1,35 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Test 1"
+author: "Anna Dreyer"
+output:
+  tufte::tufte_handout: default
+  tufte::tufte_html: default
+
 ---
+fig.margin = TRUE,
+
 
 Installing packages
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 install.packages("needs")
 library(needs)
 needs(tidyverse, readxl, boot, magrittr, gmodels, vcd, 
-      psych, caret,tree, Metrics, randomForest, gbm, MASS, haven)
+      psych, caret,tree, Metrics, randomForest, gbm, MASS, haven, tufte)
 ```
 
 Reading data
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 cam_data <- read_sav("Cambridge_delinquency.sav")
 con_data <- read_sav("conviction_data.sav")
+
+head(cam_data)
+```
+
+Question 1
+Create a data set from the data files containing the variables that you want to use in your analysis. In other words, all the variables you want to use to understand and model the early life predictors of criminality. You must include information about convictions at different ages in your data set i.e., you need to merge the two data files, and select the variables and cases you need for the later analysis. Rename variables so that they are identifiable and usable.  If you can do this programmatically i.e., use the tidyverse and other packages to manipulate the data files, and variable names, you will receive higher marks for this question. 
+
+
+```{r}
+
 ```
 
