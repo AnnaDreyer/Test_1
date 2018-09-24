@@ -673,7 +673,7 @@ accuracy</code></pre>
 <p>The accuracy of the logistic model to classify the test data is 65%.This is not great.</p>
 </div>
 <div id="classification-tree-approach" class="section level2">
-<h2>Classification tree approach</h2>
+<h2>Classification tree approach:</h2>
 <p>Building tree on training data:</p>
 <pre class="r"><code>train.tree7 &lt;- tree(convicted ~attitude_mother_combo+phy_neglect_boy+rules_parents+iq_reading_8+iq_progmatices_combo+iq_verbal_combo+junschool_results+daring_boy_combo+honest_boy_peerrated+troubleness_boy_combo+fam_size+separation_parents_before10+crim_record_parents+delinq_siblings+poor_housing_combo+concentration_teacher_combo+disagree_parents+job_record_father_combo+social_support, data = train_data)
 
@@ -840,6 +840,10 @@ testingfunc</code></pre>
 <pre><code>## [1] 0.7272727</code></pre>
 <p>The function provides an accuracy of 73%, the same accuracy produced by the ConfusionMatrix function above. The function works.</p>
 </div>
+</div>
+<div id="question-4" class="section level1">
+<h1>Question 4</h1>
+<p>Here is the link to the respository: <a href="https://github.com/AnnaDreyer/Test_1" class="uri">https://github.com/AnnaDreyer/Test_1</a></p>
 </div>
 <div id="references" class="section level1">
 <h1>References</h1>

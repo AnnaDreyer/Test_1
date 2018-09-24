@@ -421,7 +421,7 @@ accuracy
 The accuracy of the logistic model to classify the test data is 65%.This is not great. 
 
 
-##Classification tree approach
+##Classification tree approach:
 
 Building tree on training data:
 ```{r echo=TRUE}
@@ -524,6 +524,9 @@ testingfunc
 ```
 The function provides an accuracy of 73%, the same accuracy produced by the ConfusionMatrix function above. The function works. 
 
+#Question 4
+
+Here is the link to the respository: https://github.com/AnnaDreyer/Test_1
 
 # References
 
