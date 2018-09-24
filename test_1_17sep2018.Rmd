@@ -1,35 +1,537 @@
 ---
 title: "Test 1"
 author: "Anna Dreyer"
+date: "24 September 2018"
 output:
-  tufte::tufte_handout: default
   tufte::tufte_html: default
-
 ---
-fig.margin = TRUE,
 
-
-Installing packages
-```{r message=FALSE, warning=FALSE, include=FALSE}
-install.packages("needs")
-library(needs)
-needs(tidyverse, readxl, boot, magrittr, gmodels, vcd, 
-      psych, caret,tree, Metrics, randomForest, gbm, MASS, haven, tufte)
+Installing packages required for test:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(pacman)
+p_load(tidyverse, readxl, boot, magrittr, gmodels, vcd, psych, caret,tree, Metrics, randomForest, gbm, MASS, haven, tufte, boot, dplyr, stats)
 ```
 
-Reading data
+Reading data:
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 cam_data <- read_sav("Cambridge_delinquency.sav")
 con_data <- read_sav("conviction_data.sav")
-
-head(cam_data)
 ```
 
-Question 1
-Create a data set from the data files containing the variables that you want to use in your analysis. In other words, all the variables you want to use to understand and model the early life predictors of criminality. You must include information about convictions at different ages in your data set i.e., you need to merge the two data files, and select the variables and cases you need for the later analysis. Rename variables so that they are identifiable and usable.  If you can do this programmatically i.e., use the tidyverse and other packages to manipulate the data files, and variable names, you will receive higher marks for this question. 
+#Aim: 
+Determine the early life predictors (years 9-11) of criminality. Specifically, I am interested in what the early life predictors are of persistant offences (more then two offences in a lifetime) compared to people that just make one offence in a lifetime. I am interested in all offences, both juvinile and adult, thus offences from age 11 to 25 are considered in this study (and adult and juvenile offences are not separated). Identifying which factors predispose young boys to  make more than one offence later in life is important so we can intervene at an early age. A once-off offence is not as serious and not indictaive of a criminal life thus we are interested in people who make 2 offences between the ages of 11 and 25. 
+
+#Question 1
+
+##Creating dataset from variables of interest
+
+Variables were selected according to the following process: 
+Only variables in the age categories '8 through 9' and '10 through 11' were considered because the aim is to determine the early childhood factors which predict future criminal offences (above 11 not childhood anymore). 
+
+1) I consulted the literature to determine which childhood variables were associated with criminality later in life and chose to include these variables (p. 21-22, Farrington, 2003).
+
+2) I chose all the variables that significantly differiated future convicted juvenile delinquents and nondeliquensts (p. 15-16, Farrington, 2003).
+
+3) I chose childhood variables that were associated with persistant offendors and occasional offenders (p. 23, Farrington, 2003).
+
+4) I chose variables that were identified as potential protective factors (p. 35, Farrington, 2003).
+
+This method resulted in 113 variables selected. I then read the variable descriptions in the codebook and retained combination variables were possible and deleted individual which then became redundant. 
+
+This left the following 37 variables:
+```{r message=FALSE, warning=FALSE}
+newcam_data <- dplyr::select(cam_data, v56, v69, v123, v132, v133, v134, v138, v146, v147, v169, v178, v179, v180, v185, v195, v196, v207, v214, v216, v217, v236, v237, v247, v254, v256, v260, v264, v277, v283, v294, v300, v301, v303, v305, v306, v309, v310)
+```
 
 
+Renaming variables:
+(For detailed descriptions of variable names, please see 'my codebook test 1' in the file dirctory) 
 ```{r}
+newcam_data <- plyr::rename(newcam_data, c('v56'='parents_coop', 'v69' = 'fam_size', 'v123' = 'phy_neglect_boy', 'v132' = 'rules_parents', 'v133' = 'social_support', 'v134' = 'broken_home_before10', 'v138' = 'ses_family', 'v146' = 'separation_parents_before10', 'v147' = 'iq_reading_8', 'v169'= 'concentration_teacher_8', 'v178'= 'attitude_father_combo', 'v179'= 'attitude_mother_combo', 'v180'= 'authority_parents', 'v185'= 'father_activities', 'v195'= 'daring_boy_combo', 'v196'= 'disagree_parents', 'v207'='phys_health_mother', 'v214'='income_siblings', 'v216'='income_father', 'v217'= 'income_mother', 'v236'= 'national_assistance', 'v237'= 'nerves_boy_combo', 'v247'= 'nerves_mother_combo', 'v254' = 'iq_progmatices_combo', 'v256'='iq_portmaze_combo', 'v260'='honest_boy_peerrated', 'v264'= 'popular_boy_combo', 'v277'= 'troubleness_boy_combo', 'v283'= 'iq_verbal_combo', 'v294'= 'concentration_teacher_10', 'v300'= 'crim_record_parents', 'v301' = 'delinq_siblings', 'v303' = 'poor_housing_combo', 'v305' = 'job_record_father_combo', 'v306' = 'height_combo', 'v309'= 'weight_combo', 'v310'= 'junschool_results' ))
+```
+
+
+Combining the ratings of the boy's concentration at age 8-9 and 10-11:
+```{r}
+newcam_data$concentration_teacher_combo <-newcam_data$concentration_teacher_8 + newcam_data$concentration_teacher_10
+```
+
+
+Separating out each age category in dataset with convictions:
+```{r}
+convicted_10_13 <- filter(con_data, agecat=="convicted_10_13")
+convicted_14_16 <- filter(con_data, agecat=="convicted_14_16")
+convicted_17_20 <- filter(con_data, agecat=="convicted_17_20")
+convicted_21_24 <- filter(con_data, agecat=="convicted_21_24")
+convicted_as_juvenile <- filter(con_data, agecat=="convicted_as_juvenile")
+convicted_as_adult <- filter(con_data, agecat=="convicted_as_adult")
+convicted_10_24 <- filter(con_data, agecat=="convicted_10_24")
+```
+
+Including information about the number of convictions as an adult and juvenile to the dataset with the variables with childhood risk factors: 
+```{r} 
+all_data<- cbind(newcam_data, convicted_10_24)
+```
+
+
+Converting all variables to  factors (because they are all categorical): 
+```{r}
+all_data[] <- lapply(all_data, as.factor)
+```
+
+
+#Question 2
+
+##Exploring the dataset
+
+
+```{r message=FALSE, warning=FALSE, fig.margin=TRUE}
+ggplot(all_data, aes(x=convicted)) +
+    geom_histogram(binwidth= 5, colour="black", fill="orange", stat="count")
+```
+Majority of the offendors (aged 10-24) committed 1 offence, and the rest two. Nobody committed more than 2 offences. 
+
+To explore the variables selected for modelling, I have made a number of mosaic plots, they are colour coded: 
+red  means there are fewer observations than are expected. 
+blue means more observations than are expected. 
+
+##Plots of the variables related to the parents treatment of the child and offences:
+```{r fig.margin=TRUE} 
+
+all_data %>% 
+  dplyr::select(attitude_father_combo, convicted) %>%
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(attitude_mother_combo, convicted) %>%
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(phy_neglect_boy, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(authority_parents, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(rules_parents, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
 
 ```
+There appears to be no relationship between the fathers overall attitude (including disclipline type and quality) and the number of convictions, whereas when the mothers overall attitude  is poor, there is more chance of the child having 2 convictions compared to 1. 
+
+When physical neglect was present, there was more chance of the child committing 2 offences and when absent, less chance of commtting 1 offence. 
+
+No relationship between the authority of the parents and offences. 
+
+When the parents rules were slack, there was more chance of 2 offences. 
+
+
+##Plots of the variables related to the boy's intelligence and offences:
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(iq_reading_8, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(iq_progmatices_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(junschool_results, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(iq_portmaze_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(iq_verbal_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+Boys with a reading IQ between 101-128 at age 8 will have less chance of committing two offences. 
+
+Boys with a low progessive matrix IQ (90 OR LESS) will have more chance of committing 2 offences. 
+
+Boys with low junior school results will have more chance of committing 2 offences (and less chance of committing 1). Those with high junior school leaving results will have less chance of committing 2 offences. 
+
+There is no relationship between porteus matrix IQ and offences.
+
+Boys with a high verbal IQ will have less chance of committing 2 offences. 
+
+##Plots showing the relationship between family income and offences:
+```{r fig.margin=TRUE}
+
+all_data %>% 
+  dplyr::select(income_father, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(income_mother, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(income_siblings, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+There seems to be no relationship between family income and offences.
+
+
+##Plotting individual personality traits of the boy and criminality:
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(daring_boy_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(nerves_boy_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(honest_boy_peerrated, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(popular_boy_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(troubleness_boy_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+Boys with high and high average daring have a greater chance of committing 2 offences (less chance of 1), whereas boys with low daring have less chance of committing 2 offences (more chance of 1).
+
+There is no relationship between nervousness of the boy and later offences. 
+
+The least honest the boy was rated, the more chance of making 2 offences, whereas the more honest the boy was rated, the less chance of 2 offences.
+
+No relationship between popularity and offences. 
+
+A high level of troublesomeness is related to more chance of 2 offences and less chance of 1. A low level of troublesomeness is related to less chance of 2 offences and more chance of 1.
+
+##Family size and offences:
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(fam_size, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+A large family is related to more chances of 2 offences. 
+
+
+##Home environment and offences
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(broken_home_before10,convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(separation_parents_before10,convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(poor_housing_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+```
+There was no relationship between whether the boy had a broken home before age 10 or not and offences. 
+
+Separation from parents before age 10 for reasons other than death and hospitlaztion were associated with greater chance of 2 offences and less chance of 1. 
+
+Boys with poor houseing had more chance of committing 2 offences.
+
+##Boys' weight and height and offences: 
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(weight_combo,convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(height_combo,convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(height_combo,weight_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+Individually there was no relationship between weight and offences, but the taller boys that weighed a lot were more chance of make 2 offences and smaller boys more chance of making 1 offence. 
+
+##Criminal/deliquent behaviour by other family members
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(crim_record_parents, convicted) %>% 
+  group_by(convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(delinq_siblings, convicted) %>% 
+  group_by(convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+Boys with deliquent siblings had a greater chance of committing 2 offences. 
+
+Boys whose parents had never been convicted had less chance of committing 2 offences. Boys whose parents had committed a juvenile offence had more chance of committing 2 offences. Boys whose parents had committed 4 or more offences had more chance of committing 2 offences (and less chance of 1 offence). 
+
+##Mother's personality factors and offences: 
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(phys_health_mother, nerves_mother_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+The physical health and nervousness of the mother had no relationship to the number of offences. 
+
+##Involvement of father in boy's activities:
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(father_activities, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+Whether or not the father was involved in activities with the boy had no relationship to the number of offences. 
+
+##Parents willingness to coooperate in the study:
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(parents_coop, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+The parents co-operation in the study had no relationship to the number of offences. 
+
+##Ability to concentrate at school and offences:
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(concentration_teacher_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+The less the boy was able to concentrate as school, the more chance of committing 2 offences.
+
+##Parents marriage quality and offences:
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(disagree_parents, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+A high level of dissagreement in the parents marriage is related to a greater chance of committing 2 offences. 
+
+##Father's job history and offences: 
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(job_record_father_combo, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+If the father changes jobs many times, was unemployed or had an erratic employment status, it was related to a greater chance of 2 offences. If the father had a stable job, it was associated with less chance of 2 offences. 
+
+##Family SES and offences:
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(ses_family, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+There was no relationship between the ses of the family and number of offences. 
+
+##Family financial assistance by state and offences:
+```{r fig.margin=TRUE}
+all_data %>% 
+  dplyr::select(national_assistance, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+
+all_data %>% 
+  dplyr::select(social_support, convicted) %>% 
+  table() %>% 
+  mosaic(shade=TRUE, legend=TRUE)
+```
+There is no relationship between national assistance and offences but if the family was recieving social support, there was more chance of 2 offences (and less chance of 1).
+
+# Question 3
+
+Hierarchical models were build based on predictors identified as important in the literature, aswell the the variables that were identifed as associated with the number of offences in the univariate mosaic plots. All varibles that did not show a visual relationship to the number of offences in the plots were excluded from the models. 
+
+A validation set was used to validate the generalisbility of the model. The data was split into a test and training set using a 75/25% split. 
+
+The outcome variable modelled (convictions) is binomial (the boys either made one or two convictions) thus I used a logistic regression and tree methods to classify the outcomes. 
+
+The vailidity of the models were assessed using classfication success. 
+
+Here we go
+
+Splitting data into test and train
+```{r message=FALSE, warning=FALSE}
+set.seed(30)
+train_data <- sample_frac(all_data, 0.75)
+test_data <- setdiff(all_data, train_data)
+```
+
+##Logistic model: 
+```{r}
+model2<- glm(convicted~attitude_mother_combo+phy_neglect_boy+rules_parents+iq_reading_8+iq_progmatices_combo+iq_verbal_combo+junschool_results+daring_boy_combo+honest_boy_peerrated+troubleness_boy_combo+fam_size+separation_parents_before10+crim_record_parents+delinq_siblings+poor_housing_combo+concentration_teacher_combo+disagree_parents+job_record_father_combo+social_support,family = "binomial", data=train_data)
+summary(model2)
+```
+
+```{r message=FALSE}
+ci <- confint(model2)
+CI_odd <- exp(cbind(OR = coef(model2), ci))
+CI_odd
+```
+
+The logistic model shows that a poor attitude from the mom (OR 5.6) and slack rules (OR 4.8) by the chances increases the odds of the boy committing 2 offences later in life compared to 1. In addition, boys that had parents that had 4 offences or more themselves were more likely (OR 27) to committ 2 offences, compared to 1. 
+
+
+Classification of test data according to logistic regression:
+```{r}
+predict <- predict(model2, newdata = test_data, type = 'response')
+#confusion matrix
+table(as.factor(test_data$convicted), as.factor(predict > 0.5))
+accuracy = (32+4)/55
+accuracy
+```
+The accuracy of the logistic model to classify the test data is 65%.This is not great. 
+
+
+##Classification tree approach
+
+Building tree on training data:
+```{r echo=TRUE}
+train.tree7 <- tree(convicted ~attitude_mother_combo+phy_neglect_boy+rules_parents+iq_reading_8+iq_progmatices_combo+iq_verbal_combo+junschool_results+daring_boy_combo+honest_boy_peerrated+troubleness_boy_combo+fam_size+separation_parents_before10+crim_record_parents+delinq_siblings+poor_housing_combo+concentration_teacher_combo+disagree_parents+job_record_father_combo+social_support, data = train_data)
+
+plot(train.tree7)
+text(train.tree7, pretty = 1) 
+```
+
+Classification with test data
+```{r warning=FALSE}
+yhat.test7 = predict (train.tree7, newdata = test_data, type = "class")
+confusionMatrix(as.factor(yhat.test7), as.factor(test_data$convicted))
+```
+This tree is 74% accurate at predicting whether a boy will make one or two offences. It is not such a great model. Specificity is very low (47%).
+
+
+Pruning tree (to prevent overfitting).
+we prune by using a penalty for the no. of branches. We want to prune using tuning parameter (alpha). 
+
+Choose alpha using cross validation: 
+```{r}
+cv.train.tree7 <- cv.tree(train.tree7)
+plot(cv.train.tree7$size, cv.train.tree7$dev, type = "b")
+```
+The alpha that the plot suggests in 1, this is too small. I chose alpha= 8, this is the point in the graph were is starts to increase again after leveling off a bit. It also allows for some flexibility in the model. 
+
+Pruning the tree using alpha we obtained- alpha = 8
+```{r}
+prune.train.tree7 =prune.tree(train.tree7, best = 8)
+plot(prune.train.tree7)
+text(prune.train.tree7, pretty = 1)
+```
+
+We determine the classification for the pruned model, on both training and
+test sets. 
+
+Classification with test data:
+```{r warning=FALSE}
+yhat.test17 = predict (prune.train.tree7, newdata = test_data, type = "class")
+confusionMatrix(as.factor(yhat.test17), as.factor(test_data$convicted))
+```
+The model classifiction accuracy is 72%, not much better than the null model (66%). Specificty is very low (29%). Overall, this model is not too great. In an attempt to improve the model, I will used a bagged tree approach. 
+
+
+Bagged tree:
+```{r}
+library(randomForest)
+
+set.seed(45)
+ital.bag1 <- randomForest(convicted ~attitude_mother_combo+phy_neglect_boy+rules_parents+daring_boy_combo+honest_boy_peerrated+troubleness_boy_combo+iq_reading_8+iq_progmatices_combo+iq_verbal_combo+junschool_results+fam_size+separation_parents_before10+crim_record_parents+delinq_siblings+poor_housing_combo+concentration_teacher_combo+disagree_parents+job_record_father_combo+social_support,
+mtry = 19, importance = TRUE, ntree = 10000, na.action = na.omit, 
+data = train_data)
+```
+
+
+Classification with test data:
+```{r}
+yhat.bag = predict(ital.bag1, newdata = test_data)
+confusionMatrix(as.factor(yhat.bag), as.factor(test_data$convicted))
+```
+This model is not much better than the null model! Terrible. 
+
+A even better way to improve on the bagging method and to prevent over-fitting is random forests. we will randomly select  the number of predictors (m) from the total (p) we want to consider at each split. 
+we will follow the rule of thumb and We usually take m = sqrt(p) at each split.
+sqrt(19)
+=4.35
+we will choose mtry = 4 
+
+
+Random forests:
+```{r}
+set.seed(46)
+ital.bag3 <- randomForest(convicted ~attitude_mother_combo+phy_neglect_boy+rules_parents+daring_boy_combo+honest_boy_peerrated+troubleness_boy_combo+iq_reading_8+iq_progmatices_combo+iq_verbal_combo+junschool_results+fam_size+separation_parents_before10+crim_record_parents+delinq_siblings+poor_housing_combo+concentration_teacher_combo+disagree_parents+job_record_father_combo+social_support,
+mtry = 4, importance = TRUE, ntree = 10000, na.action = na.omit, 
+data = train_data)
+```
+
+Classification with test data: 
+```{r}
+yhat.bag3 = predict(ital.bag3, newdata = test_data)
+confusionMatrix(as.factor(yhat.bag3), as.factor(test_data$convicted))
+```
+Unfortuntely, this model is also not great. I am struggling to understand why each on the variables on thier own is associated to offending but it is is so difficult to build a model to classify people who made one offence compared ot two. 
+
+Overall, the main finding from the results is that if the parents have a criminal record of 4 offences or more, this will increase the chances of thier some committing more than one crime. 
+
+
+##Function to assess the predictive accuracy (classification success) of my models, testing it by applying to my data: 
+```{r}
+#function to calculate accuracy of the model from classification table (TP=true positives, TN= True negatives, tot = total)
+acc_func = function(TP, TN, tot) {
+  a <- (TP+TN)/tot
+}
+
+#testing the function using the confusion matrix above
+
+testingfunc <- acc_func(38,2,55)
+testingfunc
+```
+The function provides an accuracy of 73%, the same accuracy produced by the ConfusionMatrix function above. The function works. 
+
+
+# References
+
+Farrington, D. P. (2003). Key results from the first forty years of the Cambridge study in delinquent development. In Taking stock of delinquency (pp. 137-183). Springer, Boston, MA.
+
+
+
+
+
+
 
